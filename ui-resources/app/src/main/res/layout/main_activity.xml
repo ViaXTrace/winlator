@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/DrawerLayout"
+    android:fitsSystemWindows="true"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#080C14">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="#080C14">
+
+        <androidx.appcompat.widget.Toolbar
+            android:layout_width="match_parent"
+            android:layout_height="?actionBarSize"
+            android:id="@+id/Toolbar"
+            android:background="#0B1120"
+            android:elevation="0dp"
+            app:layout_scrollFlags="enterAlways|scroll"
+            app:title="@string/app_name" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#12192E" />
+
+        <FrameLayout
+            android:id="@+id/FLFragmentContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#080C14"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
+    </LinearLayout>
+
+    <com.google.android.material.navigation.NavigationView
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:id="@+id/NavigationView"
+        android:fitsSystemWindows="true"
+        app:headerLayout="@layout/main_menu_header"
+        app:itemIconTint="?attr/colorAccent"
+        app:itemTextColor="?attr/colorPrimaryText"
+        android:background="#0B1120"
+        app:itemBackground="@drawable/nav_item_background"
+        app:menu="@menu/main_menu"/>
+</androidx.drawerlayout.widget.DrawerLayout>
