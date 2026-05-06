@@ -1,0 +1,114 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TAG=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bundle web assets
+        run: |
+          mkdir -p dist
+          cp index.html dist/
+          cp logo.png dist/
+          cp README.md dist/
+          cp LICENSE dist/
+          cp -r input_controls dist/
+          cp -r installable_components dist/
+          cp -r wine_addons dist/
+          cp -r glibc_patches dist/
+          zip -r winlator-web-${{ steps.tag.outputs.TAG }}.zip dist/
+          tar -czf winlator-web-${{ steps.tag.outputs.TAG }}.tar.gz dist/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          echo "## Winlator ${{ steps.tag.outputs.TAG }}" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "### What's included" >> $GITHUB_OUTPUT
+          echo "- Redesigned glassmorphism UI/UX — dark theme, glass cards, smooth animations" >> $GITHUB_OUTPUT
+          echo "- Full project web page with installation guide, tips, game compatibility list" >> $GITHUB_OUTPUT
+          echo "- 50+ game input control profiles (.icp)" >> $GITHUB_OUTPUT
+          echo "- Installable components: Box64, DXVK, Turnip, VKD3D, WineDX" >> $GITHUB_OUTPUT
+          echo "- Wine Gecko and Wine Mono MSI installers" >> $GITHUB_OUTPUT
+          echo "- GLIBC patches from Termux Pacman" >> $GITHUB_OUTPUT
+          echo "- Android ALSA audio module source" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "### Installation" >> $GITHUB_OUTPUT
+          echo "1. Download **Winlator_11.0.apk** from [GitHub Releases](https://github.com/brunodev85/winlator/releases)" >> $GITHUB_OUTPUT
+          echo "2. Enable unknown sources on your Android device" >> $GITHUB_OUTPUT
+          echo "3. Install the APK and launch — the app will auto-configure on first run" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.TAG }}
+          name: Winlator ${{ steps.tag.outputs.TAG }}
+          body: ${{ steps.changelog.outputs.CHANGELOG }}
+          draft: false
+          prerelease: false
+          files: |
+            winlator-web-${{ steps.tag.outputs.TAG }}.zip
+            winlator-web-${{ steps.tag.outputs.TAG }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: release
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
