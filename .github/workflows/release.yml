@@ -13,6 +13,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   release:
@@ -36,45 +38,51 @@ jobs:
 
       - name: Bundle web assets
         run: |
+          TAG=${{ steps.tag.outputs.TAG }}
           mkdir -p dist
-          cp index.html dist/
-          cp logo.png dist/
-          cp README.md dist/
-          cp LICENSE dist/
-          cp -r input_controls dist/
-          cp -r installable_components dist/
-          cp -r wine_addons dist/
-          cp -r glibc_patches dist/
-          zip -r winlator-web-${{ steps.tag.outputs.TAG }}.zip dist/
-          tar -czf winlator-web-${{ steps.tag.outputs.TAG }}.tar.gz dist/
 
-      - name: Generate changelog
-        id: changelog
-        run: |
-          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-          echo "## Winlator ${{ steps.tag.outputs.TAG }}" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "### What's included" >> $GITHUB_OUTPUT
-          echo "- Redesigned glassmorphism UI/UX — dark theme, glass cards, smooth animations" >> $GITHUB_OUTPUT
-          echo "- Full project web page with installation guide, tips, game compatibility list" >> $GITHUB_OUTPUT
-          echo "- 50+ game input control profiles (.icp)" >> $GITHUB_OUTPUT
-          echo "- Installable components: Box64, DXVK, Turnip, VKD3D, WineDX" >> $GITHUB_OUTPUT
-          echo "- Wine Gecko and Wine Mono MSI installers" >> $GITHUB_OUTPUT
-          echo "- GLIBC patches from Termux Pacman" >> $GITHUB_OUTPUT
-          echo "- Android ALSA audio module source" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "### Installation" >> $GITHUB_OUTPUT
-          echo "1. Download **Winlator_11.0.apk** from [GitHub Releases](https://github.com/brunodev85/winlator/releases)" >> $GITHUB_OUTPUT
-          echo "2. Enable unknown sources on your Android device" >> $GITHUB_OUTPUT
-          echo "3. Install the APK and launch — the app will auto-configure on first run" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Copy files that exist
+          [ -f index.html ] && cp index.html dist/
+          [ -f logo.png ]   && cp logo.png dist/
+          [ -f README.md ]  && cp README.md dist/
+          [ -f LICENSE ]    && cp LICENSE dist/
+          [ -f serve.py ]   && cp serve.py dist/
+
+          # Copy directories that exist
+          for dir in input_controls installable_components wine_addons glibc_patches android_alsa; do
+            [ -d "$dir" ] && cp -r "$dir" dist/ || echo "Skipping missing dir: $dir"
+          done
+
+          echo "Bundle contents:"
+          find dist -maxdepth 2 | head -40
+
+          zip -r "winlator-web-${TAG}.zip" dist/
+          tar -czf "winlator-web-${TAG}.tar.gz" dist/
+          echo "Archives created."
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.TAG }}
-          name: Winlator ${{ steps.tag.outputs.TAG }}
-          body: ${{ steps.changelog.outputs.CHANGELOG }}
+          name: "Winlator ${{ steps.tag.outputs.TAG }} — Glassmorphism UI"
+          body: |
+            ## Winlator ${{ steps.tag.outputs.TAG }}
+
+            ### What's new
+            - **Redesigned glassmorphism UI/UX** — dark theme, glass cards, blur layers, scroll animations
+            - Full project web page with installation guide, tips & compatibility list
+            - Smooth animated background with floating orbs and grid
+            - Navigation with anchor links and download CTA
+            - Games ticker with 50+ compatible titles
+            - Component version cards (Box64, DXVK, Wine)
+
+            ### Installation
+            1. Download **Winlator_11.0.apk** from [brunodev85 Releases](https://github.com/brunodev85/winlator/releases)
+            2. Enable unknown sources on your Android device
+            3. Install the APK — the app will auto-configure on first launch
+
+            ### Tech stack
+            - Wine · Box86/Box64 · DXVK · VKD3D · Mesa Turnip/Zink · Android ALSA
           draft: false
           prerelease: false
           files: |
@@ -87,11 +95,6 @@ jobs:
     name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
     needs: release
-
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
 
     environment:
       name: github-pages
