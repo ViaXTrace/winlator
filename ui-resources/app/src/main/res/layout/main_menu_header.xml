@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="140dp"
+    android:background="#0B1120"
+    android:paddingLeft="20dp"
+    android:paddingBottom="20dp"
+    android:paddingTop="12dp">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/nav_header_gradient" />
+
+    <ImageView
+        android:layout_width="160dp"
+        android:layout_height="54dp"
+        android:layout_gravity="left|bottom"
+        android:src="@drawable/logo" />
+</FrameLayout>
