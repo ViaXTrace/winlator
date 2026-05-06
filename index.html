@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Winlator — Windows on Android</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --glass-bg: rgba(255,255,255,0.04);
+      --glass-border: rgba(255,255,255,0.10);
+      --glass-hover: rgba(255,255,255,0.08);
+      --accent: #5b8fff;
+      --accent-2: #a259ff;
+      --accent-3: #ff6b6b;
+      --accent-glow: rgba(91,143,255,0.35);
+      --text-primary: #f0f4ff;
+      --text-secondary: rgba(240,244,255,0.55);
+      --text-muted: rgba(240,244,255,0.32);
+      --radius-sm: 12px;
+      --radius-md: 18px;
+      --radius-lg: 28px;
+      --radius-xl: 40px;
+      --blur: blur(24px) saturate(180%);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #080b14;
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── BACKGROUND ─── */
+    .bg-scene {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.18;
+      animation: orbFloat 18s ease-in-out infinite;
+    }
+    .bg-orb-1 { width: 700px; height: 700px; background: #5b8fff; top: -200px; left: -200px; animation-delay: 0s; }
+    .bg-orb-2 { width: 500px; height: 500px; background: #a259ff; top: 40%; right: -150px; animation-delay: -6s; }
+    .bg-orb-3 { width: 400px; height: 400px; background: #1a9fff; bottom: -100px; left: 30%; animation-delay: -12s; }
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+    .bg-vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(8,11,20,0.85) 100%);
+    }
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(40px,-30px) scale(1.08); }
+      66% { transform: translate(-25px, 25px) scale(0.95); }
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 68px;
+      background: rgba(8,11,20,0.6);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .nav-logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .nav-logo-text {
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.3px;
+      color: var(--text-primary);
+    }
+    .nav-links {
+      display: flex;
+      gap: 4px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover { color: var(--text-primary); background: var(--glass-bg); }
+    .nav-cta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-nav {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      box-shadow: 0 4px 20px rgba(91,143,255,0.3);
+    }
+    .btn-nav:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(91,143,255,0.45); }
+
+    /* ─── MAIN ─── */
+    main { position: relative; z-index: 1; }
+
+    /* ─── HERO ─── */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 100vh;
+      padding: 120px 24px 80px;
+      gap: 0;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      padding: 7px 16px;
+      border-radius: 100px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 36px;
+      animation: fadeUp 0.8s ease both;
+    }
+    .hero-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #5bff9f; box-shadow: 0 0 6px #5bff9f; }
+    .hero-title {
+      font-size: clamp(3rem, 8vw, 6.5rem);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -3px;
+      margin-bottom: 28px;
+      animation: fadeUp 0.8s 0.1s ease both;
+    }
+    .hero-title-plain { color: var(--text-primary); }
+    .hero-title-gradient {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 60%, #ff6b6b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--text-secondary);
+      max-width: 560px;
+      line-height: 1.7;
+      font-weight: 400;
+      margin-bottom: 52px;
+      animation: fadeUp 0.8s 0.2s ease both;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 80px;
+      animation: fadeUp 0.8s 0.3s ease both;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      text-decoration: none;
+      padding: 16px 34px;
+      border-radius: 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      transition: all 0.25s;
+      box-shadow: 0 8px 32px rgba(91,143,255,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+      letter-spacing: -0.2px;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 42px rgba(91,143,255,0.55); }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      color: var(--text-primary);
+      text-decoration: none;
+      padding: 16px 34px;
+      border-radius: 14px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      transition: all 0.25s;
+    }
+    .btn-secondary:hover { background: var(--glass-hover); transform: translateY(-2px); }
+    .hero-stats {
+      display: flex;
+      gap: 48px;
+      animation: fadeUp 0.8s 0.4s ease both;
+    }
+    .hero-stat { text-align: center; }
+    .hero-stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-stat-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    /* ─── SECTIONS ─── */
+    section { position: relative; z-index: 1; padding: 100px 24px; max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 14px;
+    }
+    .section-label::before { content: ''; display: block; width: 18px; height: 2px; background: var(--accent); border-radius: 2px; }
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      color: var(--text-primary);
+      margin-bottom: 18px;
+      line-height: 1.1;
+    }
+    .section-sub {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      max-width: 500px;
+      line-height: 1.7;
+      margin-bottom: 60px;
+    }
+
+    /* ─── GLASS CARD ─── */
+    .glass-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      transition: all 0.3s;
+    }
+    .glass-card:hover {
+      background: var(--glass-hover);
+      border-color: rgba(255,255,255,0.16);
+      transform: translateY(-3px);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+    }
+    .card-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 22px;
+      position: relative;
+    }
+    .card-icon::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      opacity: 0.15;
+    }
+    .icon-blue { background: rgba(91,143,255,0.15); }
+    .icon-purple { background: rgba(162,89,255,0.15); }
+    .icon-pink { background: rgba(255,107,107,0.15); }
+    .icon-cyan { background: rgba(91,209,255,0.15); }
+    .icon-green { background: rgba(91,255,159,0.15); }
+    .icon-orange { background: rgba(255,165,91,0.15); }
+    .card-title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; letter-spacing: -0.3px; }
+    .card-desc { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.65; }
+
+    /* ─── FEATURES GRID ─── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+
+    /* ─── BIG CARD ROW ─── */
+    .big-card-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .big-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .big-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    }
+    .big-card:hover {
+      background: var(--glass-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+    }
+    .big-card-glow {
+      position: absolute;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.12;
+      top: -50px; right: -50px;
+    }
+
+    /* ─── INSTALL ─── */
+    .install-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .install-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border-radius: var(--radius-md);
+      padding: 22px 26px;
+      transition: all 0.25s;
+    }
+    .install-item:hover {
+      background: var(--glass-hover);
+      border-color: rgba(255,255,255,0.14);
+      transform: translateX(4px);
+    }
+    .step-num {
+      min-width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: white;
+      box-shadow: 0 4px 14px rgba(91,143,255,0.35);
+    }
+    .install-item-content { flex: 1; }
+    .install-item-title { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+    .install-item-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.55; }
+
+    /* ─── TIPS ─── */
+    .tips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+    .tip-item {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border-radius: var(--radius-md);
+      padding: 22px 24px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: all 0.25s;
+    }
+    .tip-item:hover { background: var(--glass-hover); transform: translateY(-2px); }
+    .tip-icon {
+      font-size: 1.3rem;
+      min-width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tip-text { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
+    .tip-text strong { color: var(--text-primary); }
+    code {
+      font-family: 'SF Mono', 'JetBrains Mono', monospace;
+      background: rgba(91,143,255,0.12);
+      color: var(--accent);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 0.82em;
+      border: 1px solid rgba(91,143,255,0.2);
+    }
+
+    /* ─── COMPONENTS TABLE ─── */
+    .components-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+    .component-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      transition: all 0.25s;
+      cursor: default;
+    }
+    .component-card:hover { background: var(--glass-hover); border-color: rgba(91,143,255,0.25); transform: translateY(-2px); }
+    .component-name { font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+    .component-version {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(91,143,255,0.1);
+      padding: 3px 9px;
+      border-radius: 6px;
+      border: 1px solid rgba(91,143,255,0.2);
+    }
+
+    /* ─── GAMES TICKER ─── */
+    .ticker-container {
+      overflow: hidden;
+      mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+      -webkit-mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+      margin-bottom: 20px;
+    }
+    .ticker-track {
+      display: flex;
+      gap: 10px;
+      animation: ticker 40s linear infinite;
+      width: max-content;
+    }
+    .ticker-track:hover { animation-play-state: paused; }
+    .game-tag {
+      white-space: nowrap;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .game-tag:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.18); background: var(--glass-hover); }
+    @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+    /* ─── CREDITS ─── */
+    .credits-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .credit-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      padding: 10px 18px;
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .credit-pill:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.18); background: var(--glass-hover); transform: translateY(-1px); }
+    .credit-pill-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+    /* ─── FOOTER ─── */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--glass-border);
+      padding: 40px 24px;
+      text-align: center;
+    }
+    .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .footer-left { font-size: 0.85rem; color: var(--text-muted); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 0.85rem; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text-primary); }
+
+    /* ─── DIVIDER ─── */
+    .divider { width: 100%; height: 1px; background: linear-gradient(90deg, transparent, var(--glass-border), transparent); margin: 0; }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-in { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .animate-in.visible { opacity: 1; transform: translateY(0); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hero { padding: 100px 20px 60px; }
+      .hero-stats { gap: 28px; }
+      .big-card-row { grid-template-columns: 1fr; }
+      section { padding: 70px 20px; }
+      .footer-inner { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background -->
+  <div class="bg-scene">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-vignette"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav>
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-icon">⊞</div>
+      <span class="nav-logo-text">Winlator</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#install">Install</a></li>
+      <li><a href="#games">Games</a></li>
+      <li><a href="#tips">Tips</a></li>
+      <li><a href="#credits">Credits</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="https://github.com/brunodev85/winlator/releases" class="btn-nav" target="_blank">↓ Download APK</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main>
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        Latest — Winlator 11.0
+      </div>
+      <h1 class="hero-title">
+        <span class="hero-title-plain">Windows<br>on </span><span class="hero-title-gradient">Android.</span>
+      </h1>
+      <p class="hero-sub">Run Windows x86_64 applications natively on your Android device with Wine, Box86/Box64, and hardware-accelerated graphics via DXVK.</p>
+      <div class="hero-actions">
+        <a href="https://github.com/brunodev85/winlator/releases" class="btn-primary" target="_blank">
+          ↓ &nbsp;Download APK
+        </a>
+        <a href="https://github.com/brunodev85/winlator" class="btn-secondary" target="_blank">
+          ⌥ &nbsp;View on GitHub
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-value">50+</div>
+          <div class="hero-stat-label">Game Profiles</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value">v11.0</div>
+          <div class="hero-stat-label">Latest Build</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value">DX12</div>
+          <div class="hero-stat-label">DirectX Support</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Features -->
+    <section id="features">
+      <div class="section-label">Core Technology</div>
+      <h2 class="section-title">Built on the best<br>open-source stack.</h2>
+      <p class="section-sub">Winlator combines battle-tested emulation and compatibility layers to bring Windows gaming to ARM devices.</p>
+
+      <div class="big-card-row animate-in">
+        <div class="big-card">
+          <div class="big-card-glow" style="background:#5b8fff;"></div>
+          <div class="card-icon icon-blue" style="margin-bottom:24px;">🍷</div>
+          <div class="card-title" style="font-size:1.2rem; margin-bottom:12px;">Wine</div>
+          <div class="card-desc">Windows compatibility layer that translates Windows API calls to POSIX. Enables running .exe, .msi and Windows software natively — no virtualization overhead.</div>
+        </div>
+        <div class="big-card">
+          <div class="big-card-glow" style="background:#a259ff;"></div>
+          <div class="card-icon icon-purple" style="margin-bottom:24px;">📦</div>
+          <div class="card-title" style="font-size:1.2rem; margin-bottom:12px;">Box86 / Box64</div>
+          <div class="card-desc">x86 and x86_64 dynamic recompiler for ARM. Translates x86 instructions to ARM in real time, allowing 32-bit and 64-bit Windows binaries to execute on your Android device.</div>
+        </div>
+      </div>
+
+      <div class="features-grid animate-in">
+        <div class="glass-card">
+          <div class="card-icon icon-pink">🎮</div>
+          <div class="card-title">DXVK</div>
+          <div class="card-desc">Translates DirectX 9, 10 and 11 to Vulkan for near-native performance in hundreds of PC games.</div>
+        </div>
+        <div class="glass-card">
+          <div class="card-icon icon-cyan">⚡</div>
+          <div class="card-title">VKD3D</div>
+          <div class="card-desc">DirectX 12 to Vulkan translation layer. Enables DX12 titles to run through the modern Vulkan graphics pipeline.</div>
+        </div>
+        <div class="glass-card">
+          <div class="card-icon icon-green">🖥️</div>
+          <div class="card-title">Mesa — Turnip / Zink</div>
+          <div class="card-desc">Open-source Vulkan (Turnip) and OpenGL (Zink) drivers for Adreno GPUs with hardware acceleration.</div>
+        </div>
+        <div class="glass-card">
+          <div class="card-icon icon-orange">🎯</div>
+          <div class="card-title">Input Controls</div>
+          <div class="card-desc">50+ pre-built controller profiles for popular titles. Fully customizable on-screen touchpad and button mapping.</div>
+        </div>
+        <div class="glass-card">
+          <div class="card-icon icon-blue">🔧</div>
+          <div class="card-title">Containers</div>
+          <div class="card-desc">Isolated Windows environment containers. Run multiple configurations and games with different settings side by side.</div>
+        </div>
+        <div class="glass-card">
+          <div class="card-icon icon-purple">🔊</div>
+          <div class="card-title">Android ALSA</div>
+          <div class="card-desc">Custom ALSA audio module bridges Windows audio APIs to Android's audio subsystem for full sound support.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Install -->
+    <section id="install">
+      <div class="section-label">Getting Started</div>
+      <h2 class="section-title">Up and running<br>in minutes.</h2>
+      <p class="section-sub">No root required. Install the APK, launch, and your Windows environment is ready.</p>
+      <ul class="install-list animate-in">
+        <li class="install-item">
+          <div class="step-num">1</div>
+          <div class="install-item-content">
+            <div class="install-item-title">Download the APK</div>
+            <div class="install-item-desc">Grab <strong>Winlator_11.0.apk</strong> from the <a href="https://github.com/brunodev85/winlator/releases" style="color:var(--accent);text-decoration:none;">GitHub Releases page</a>. No Google Play required — just a direct APK install.</div>
+          </div>
+        </li>
+        <li class="install-item">
+          <div class="step-num">2</div>
+          <div class="install-item-content">
+            <div class="install-item-title">Allow Unknown Sources &amp; Install</div>
+            <div class="install-item-desc">Enable "Install from unknown sources" in your Android settings for your file manager or browser, then tap the APK to install.</div>
+          </div>
+        </li>
+        <li class="install-item">
+          <div class="step-num">3</div>
+          <div class="install-item-content">
+            <div class="install-item-title">Initial Setup</div>
+            <div class="install-item-desc">Launch Winlator. The app will automatically download and configure Wine, Box64, and all required runtime components on first launch. This may take a few minutes.</div>
+          </div>
+        </li>
+        <li class="install-item">
+          <div class="step-num">4</div>
+          <div class="install-item-content">
+            <div class="install-item-title">Create a Container &amp; Play</div>
+            <div class="install-item-desc">Create a new container, install your Windows game or application, then launch it directly from the Winlator home screen with your desired settings profile.</div>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Games -->
+    <section id="games">
+      <div class="section-label">Compatibility</div>
+      <h2 class="section-title">50+ games with<br>built-in profiles.</h2>
+      <p class="section-sub">Pre-configured input control profiles for popular titles. Just install the game and play.</p>
+
+      <div class="ticker-container animate-in">
+        <div class="ticker-track" id="ticker-track"></div>
+      </div>
+
+      <div class="components-grid animate-in" style="margin-top: 40px;">
+        <div>
+          <div class="section-label" style="margin-bottom:20px;">Box64 Builds</div>
+          <div style="display:flex;flex-direction:column;gap:10px;" id="box64-list"></div>
+        </div>
+        <div>
+          <div class="section-label" style="margin-bottom:20px;">DXVK Versions</div>
+          <div style="display:flex;flex-direction:column;gap:10px;" id="dxvk-list"></div>
+        </div>
+        <div>
+          <div class="section-label" style="margin-bottom:20px;">Wine Components</div>
+          <div style="display:flex;flex-direction:column;gap:10px;" id="wine-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Tips -->
+    <section id="tips">
+      <div class="section-label">Pro Tips</div>
+      <h2 class="section-title">Get the most out<br>of Winlator.</h2>
+      <p class="section-sub">Performance, compatibility and visual quality tips from the community.</p>
+
+      <div class="tips-grid animate-in">
+        <div class="tip-item">
+          <div class="tip-icon">⚡</div>
+          <div class="tip-text"><strong>Performance mode</strong> — Change the Box64 preset to <strong>Performance</strong> in Container Settings → Advanced Tab if you experience slowdowns.</div>
+        </div>
+        <div class="tip-item">
+          <div class="tip-icon">🔷</div>
+          <div class="tip-text"><strong>.NET Framework apps</strong> — Install <strong>Wine Mono</strong> from Start Menu → System Tools → Installers for .NET-dependent applications.</div>
+        </div>
+        <div class="tip-item">
+          <div class="tip-icon">🕹️</div>
+          <div class="tip-text"><strong>Old games compatibility</strong> — Add <code>MESA_EXTENSION_MAX_YEAR=2003</code> as an environment variable in Container Settings for older titles that refuse to launch.</div>
+        </div>
+        <div class="tip-item">
+          <div class="tip-icon">📌</div>
+          <div class="tip-text"><strong>Per-game shortcuts</strong> — Use the home screen shortcut for each game to define individual settings. Not all games need the same configuration.</div>
+        </div>
+        <div class="tip-item">
+          <div class="tip-icon">🖼️</div>
+          <div class="tip-text"><strong>Fullscreen low-res games</strong> — Enable <strong>Force Fullscreen</strong> in shortcut settings to display low-resolution games correctly on modern high-DPI screens.</div>
+        </div>
+        <div class="tip-item">
+          <div class="tip-icon">🎲</div>
+          <div class="tip-text"><strong>Unity Engine stability</strong> — For Unity games, switch Box64 preset to <strong>Stability</strong> or add the exec argument <code>-force-gfx-direct</code> in shortcut settings.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Credits -->
+    <section id="credits">
+      <div class="section-label">Open Source</div>
+      <h2 class="section-title">Standing on the shoulders<br>of giants.</h2>
+      <p class="section-sub">Winlator is built on top of world-class open-source projects. Thank you to every contributor.</p>
+
+      <div class="credits-grid animate-in">
+        <a href="https://www.winehq.org/" class="credit-pill" target="_blank">
+          <span class="credit-pill-dot" style="background:#ff6b6b;"></span> Wine — winehq.org
+        </a>
+        <a href="https://github.com/ptitSeb/box64" class="credit-pill" target="_blank">
+          <span class="credit-pill-dot" style="background:#a259ff;"></span> Box86/Box64 by ptitseb
+        </a>
+        <a href="https://www.mesa3d.org/" class="credit-pill" target="_blank">
+          <span class="credit-pill-dot" style="background:#5b8fff;"></span> Mesa — Turnip / Zink / VirGL
+        </a>
+        <a href="https://github.com/doitsujin/dxvk" class="credit-pill" target="_blank">
+          <span class="credit-pill-dot" style="background:#5bd1ff;"></span> DXVK
+        </a>
+        <a href="https://gitlab.winehq.org/wine/vkd3d" class="credit-pill" target="_blank">
+          <span class="credit-pill-dot" style="background:#5bff9f;"></span> VKD3D
+        </a>
+        <a href="https://github.com/FunkyFr3sh/cnc-ddraw" class="credit-pill" target="_blank">
+          <span class="credit-pill-dot" style="background:#ffb95b;"></span> CNC DDraw
+        </a>
+        <a href="https://github.com/termux-pacman/glibc-packages" class="credit-pill" target="_blank">
+          <span class="credit-pill-dot" style="background:#ff8c5b;"></span> GLIBC Patches — Termux Pacman
+        </a>
+        <a href="https://github.com/brunodev85/winlator" class="credit-pill" target="_blank">
+          <span class="credit-pill-dot" style="background:#c8ff5b;"></span> Winlator by brunodev85
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-left">© 2024 Winlator — Open Source under the MIT License</div>
+      <div class="footer-links">
+        <a href="https://github.com/brunodev85/winlator" target="_blank">GitHub</a>
+        <a href="https://github.com/brunodev85/winlator/releases" target="_blank">Releases</a>
+        <a href="https://github.com/brunodev85/winlator/issues" target="_blank">Issues</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Games ticker
+    const games = ["Alien Versus Predator","Alpha Protocol","Bioshock","Call of Juarez Gunslinger","Cyber Shadow","Dark Souls 2","Deus Ex Human Revolution","Divinity 2 DC","Drakensang","Driver Parallel Lines","Fallout 3","Far Cry 4","Final Fantasy 8","Final Fantasy Type-0","FlatOut 2","Front Mission Evolved","Gravity Circuit","GTA 5","Hitman 2","IGI 2","Infernal","La Mulana","Marvel Ultimate Alliance","Mass Effect 2","Metro 2033","Oblivion","Prey","Psychonauts","Quake 4","RAGE","Rayman 3","Risen 2","Second Sight","Shovel Knight","Singularity","Skyrim","Sonic Generations","Sonic Mania","Spiderman Shattered Dimensions","Stalker CS","Star Wars Jedi Knight 2","SteamWorld Dig 2","Sunset Overdrive","The Alliance Alive","The Forest","The Saboteur","Turok 2","Turok Evolution","Ultima Underworld","Unepic","Wolfenstein","Xanadu Next","Ys Origin"];
+    const ticker = document.getElementById('ticker-track');
+    const allGames = [...games, ...games];
+    allGames.forEach(g => {
+      const el = document.createElement('span');
+      el.className = 'game-tag';
+      el.textContent = g;
+      ticker.appendChild(el);
+    });
+
+    // Box64, DXVK, Wine lists
+    const box64 = ['box64-0.3.3','box64-0.3.5','box64-0.3.7'];
+    const dxvk = ['dxvk-0.96','dxvk-1.4.2','dxvk-1.7.2','dxvk-2.2','dxvk-2.3.1'];
+    const wine = ['wine-gecko-2.47.4 (x86)','wine-gecko-2.47.4 (x86_64)','wine-mono-9.0.0','wine-mono-10.1.0'];
+    function renderList(id, items) {
+      const el = document.getElementById(id);
+      items.forEach(name => {
+        const parts = name.split('-');
+        const version = parts[parts.length - 1];
+        const d = document.createElement('div');
+        d.className = 'component-card';
+        d.innerHTML = `<div class="component-name">${name}</div><span class="component-version">${version.startsWith('v') ? version : 'v'+version}</span>`;
+        el.appendChild(d);
+      });
+    }
+    renderList('box64-list', box64);
+    renderList('dxvk-list', dxvk);
+    renderList('wine-list', wine);
+
+    // Scroll animations
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.animate-in').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
