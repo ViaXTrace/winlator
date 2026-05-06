@@ -31,21 +31,19 @@ jobs:
         run: |
           echo "Cloning brunodev85/winlator-app..."
           git clone --depth=1 https://github.com/brunodev85/winlator-app winlator-src
-          echo "Clone result:"
+          echo "Cloned successfully:"
           ls winlator-src/
 
       - name: Apply glassmorphism UI resources on top of original source
         run: |
           echo "Applying glassmorphism redesign resources..."
-          # Override drawable XMLs
           cp -rf repo/ui-resources/app/src/main/res/drawable/. winlator-src/app/src/main/res/drawable/
-          # Override layout XMLs
           cp -rf repo/ui-resources/app/src/main/res/layout/. winlator-src/app/src/main/res/layout/
-          # Override values (styles, colors)
           cp -rf repo/ui-resources/app/src/main/res/values/. winlator-src/app/src/main/res/values/
-          echo "Resources applied. Verify styles.xml updated:"
-          grep -c "glassmorphism\|5B8FFF\|080C14" winlator-src/app/src/main/res/values/styles.xml || true
-          echo "Done applying UI resources."
+          echo "Resources applied."
+
+      - name: Patch build.gradle to fix duplicate native libs
+        run: python3 repo/scripts/patch_gradle.py
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -60,7 +58,6 @@ jobs:
         run: |
           echo "y" | sdkmanager "ndk;24.0.8215888" "cmake;3.22.1" --channel=0
           echo "NDK_HOME=$ANDROID_HOME/ndk/24.0.8215888" >> $GITHUB_ENV
-          echo "NDK installed."
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -72,43 +69,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Patch build.gradle to fix duplicate native libs conflict
-        run: |
-          python3 -c "
-f = 'winlator-src/app/build.gradle'
-c = open(f).read()
-if 'packagingOptions' not in c:
-    patch = '    packagingOptions {\n        pickFirst \"lib/**/*.so\"\n    }\n\n'
-    c = c.replace('    lintOptions {', patch + '    lintOptions {')
-    open(f, 'w').write(c)
-    print('packagingOptions injected')
-else:
-    print('already present')
-"
-          echo "build.gradle after patch (packagingOptions section):"
-          grep -A 5 "packagingOptions" winlator-src/app/build.gradle || echo "(none found)"
-
       - name: Make gradlew executable
         run: chmod +x winlator-src/gradlew
 
       - name: Build debug APK
         working-directory: winlator-src
         run: |
-          ./gradlew assembleDebug --no-daemon -x lint --stacktrace 2>&1 | tail -100
+          ./gradlew assembleDebug --no-daemon -x lint 2>&1 | tail -80
 
-      - name: Locate built APK
+      - name: Locate and rename APK
         id: apk
         run: |
-          APK=$(find winlator-src -name "*.apk" | head -1)
+          APK=$(find winlator-src -name "*.apk" -not -path "*/intermediates/*" | head -1)
+          if [ -z "$APK" ]; then
+            echo "ERROR: APK not found after build"
+            find winlator-src -name "*.apk" 2>/dev/null
+            exit 1
+          fi
           echo "APK_PATH=$APK" >> $GITHUB_OUTPUT
-          echo "Found APK: $APK"
-          ls -lh "$APK"
-
-      - name: Rename APK with branding
-        run: |
-          cp "${{ steps.apk.outputs.APK_PATH }}" "Winlator_glassmorphism_debug.apk"
-          echo "APK ready: Winlator_glassmorphism_debug.apk"
-          ls -lh Winlator_glassmorphism_debug.apk
+          cp "$APK" "Winlator_glassmorphism_debug.apk"
+          echo "APK ready: $(ls -lh Winlator_glassmorphism_debug.apk)"
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
@@ -128,15 +108,15 @@ else:
 
             ### Visual Changes
             - **Deep dark surface** — `#080C14` base, `#0E1525` glass cards with `#1E2D4A` borders
-            - **Gradient accent buttons** — `#5B8FFF → #8B5CF6` indigo-purple gradient, 12dp rounded
-            - **Glass neutral buttons** — `#1A2540` fill, `#2D4270` stroke, fully rounded corners
+            - **Gradient accent buttons** — `#5B8FFF → #8B5CF6` indigo-purple gradient, 12dp corners
+            - **Glass neutral buttons** — `#1A2540` fill with `#2D4270` border stroke
             - **Glass input fields** — `#0E1525` dark fill, accent blue (`#5B8FFF`) focus border
             - **Glass card list items** — all containers wrapped in layered glass cards (14dp radius)
-            - **Gradient nav drawer header** — blue diagonal gradient overlay
+            - **Gradient nav drawer header** — diagonal blue gradient overlay
             - **Active nav items** — `#1A2540` glass highlight with 10dp radius
-            - **All panels, dialogs, toolboxes, tabs, tables** fully restyled in the glass system
-            - **Semi-transparent overlay toolbar** for in-game input controls (`#CC080C14`)
-            - **Primary text** `#F0F4FF`, secondary `#8892B0`, muted `#4A6080`
+            - **All panels, dialogs, toolboxes, tabs, tables** restyled with the glass system
+            - **Semi-transparent game toolbar** — `#CC080C14` glass overlay
+            - **Typography** — primary `#F0F4FF`, secondary `#8892B0`, muted `#4A6080`
 
             ### Tech Stack
             Wine · Box86/Box64 · DXVK · VKD3D · Mesa Turnip/Zink · Android ALSA
