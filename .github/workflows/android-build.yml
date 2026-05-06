@@ -72,13 +72,47 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Patch build.gradle to fix duplicate native libs conflict
+        run: |
+          GRADLE_FILE="winlator-src/app/build.gradle"
+          echo "Patching $GRADLE_FILE to add packagingOptions..."
+          # Insert packagingOptions block before the closing brace of the android block
+          python3 - <<'PYEOF'
+import re, sys
+
+with open("winlator-src/app/build.gradle", "r") as f:
+    content = f.read()
+
+packaging_block = """
+    packagingOptions {
+        pickFirst 'lib/arm64-v8a/libFLAC.so'
+        pickFirst 'lib/arm64-v8a/libavcodec.so'
+        pickFirst 'lib/arm64-v8a/libavformat.so'
+        pickFirst 'lib/arm64-v8a/libavutil.so'
+        pickFirst 'lib/arm64-v8a/libswresample.so'
+        pickFirst 'lib/arm64-v8a/libswscale.so'
+        pickFirst 'lib/**/*.so'
+    }
+"""
+
+if "packagingOptions" not in content:
+    content = content.replace("    lintOptions {", packaging_block + "\n    lintOptions {")
+    with open("winlator-src/app/build.gradle", "w") as f:
+        f.write(content)
+    print("packagingOptions injected successfully.")
+else:
+    print("packagingOptions already present, skipping.")
+PYEOF
+          echo "Patched build.gradle:"
+          grep -A 10 "packagingOptions" winlator-src/app/build.gradle || echo "(not found)"
+
       - name: Make gradlew executable
         run: chmod +x winlator-src/gradlew
 
       - name: Build debug APK
         working-directory: winlator-src
         run: |
-          ./gradlew assembleDebug --no-daemon -x lint 2>&1 | tail -80
+          ./gradlew assembleDebug --no-daemon -x lint --stacktrace 2>&1 | tail -100
 
       - name: Locate built APK
         id: apk
