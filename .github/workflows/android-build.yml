@@ -74,37 +74,19 @@ jobs:
 
       - name: Patch build.gradle to fix duplicate native libs conflict
         run: |
-          GRADLE_FILE="winlator-src/app/build.gradle"
-          echo "Patching $GRADLE_FILE to add packagingOptions..."
-          # Insert packagingOptions block before the closing brace of the android block
-          python3 - <<'PYEOF'
-import re, sys
-
-with open("winlator-src/app/build.gradle", "r") as f:
-    content = f.read()
-
-packaging_block = """
-    packagingOptions {
-        pickFirst 'lib/arm64-v8a/libFLAC.so'
-        pickFirst 'lib/arm64-v8a/libavcodec.so'
-        pickFirst 'lib/arm64-v8a/libavformat.so'
-        pickFirst 'lib/arm64-v8a/libavutil.so'
-        pickFirst 'lib/arm64-v8a/libswresample.so'
-        pickFirst 'lib/arm64-v8a/libswscale.so'
-        pickFirst 'lib/**/*.so'
-    }
-"""
-
-if "packagingOptions" not in content:
-    content = content.replace("    lintOptions {", packaging_block + "\n    lintOptions {")
-    with open("winlator-src/app/build.gradle", "w") as f:
-        f.write(content)
-    print("packagingOptions injected successfully.")
+          python3 -c "
+f = 'winlator-src/app/build.gradle'
+c = open(f).read()
+if 'packagingOptions' not in c:
+    patch = '    packagingOptions {\n        pickFirst \"lib/**/*.so\"\n    }\n\n'
+    c = c.replace('    lintOptions {', patch + '    lintOptions {')
+    open(f, 'w').write(c)
+    print('packagingOptions injected')
 else:
-    print("packagingOptions already present, skipping.")
-PYEOF
-          echo "Patched build.gradle:"
-          grep -A 10 "packagingOptions" winlator-src/app/build.gradle || echo "(not found)"
+    print('already present')
+"
+          echo "build.gradle after patch (packagingOptions section):"
+          grep -A 5 "packagingOptions" winlator-src/app/build.gradle || echo "(none found)"
 
       - name: Make gradlew executable
         run: chmod +x winlator-src/gradlew
